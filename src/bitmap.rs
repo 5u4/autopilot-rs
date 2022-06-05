@@ -12,6 +12,7 @@
 extern crate image;
 
 use geometry::{Point, Rect, Size};
+use image::error::{ParameterError, ParameterErrorKind};
 use image::{DynamicImage, GenericImage, GenericImageView, ImageError, ImageResult, Pixel, Rgba};
 use screen;
 use std;
@@ -84,15 +85,17 @@ impl Bitmap {
         Rect::new(Point::ZERO, self.size)
     }
 
-    /// Copies image to pasteboard. Currently only supported on macOS.
-    pub fn copy_to_pasteboard(&self) -> ImageResult<()> {
-        self.system_copy_to_pasteboard()
-    }
+    // /// Copies image to pasteboard. Currently only supported on macOS.
+    // pub fn copy_to_pasteboard(&self) -> ImageResult<()> {
+    //     self.system_copy_to_pasteboard()
+    // }
 
     /// Returns new Bitmap created from a portion of another.
     pub fn cropped(&mut self, rect: Rect) -> ImageResult<Bitmap> {
         if !self.bounds().is_rect_visible(rect) {
-            Err(ImageError::DimensionError)
+            Err(ImageError::Parameter(ParameterError::from_kind(
+                ParameterErrorKind::DimensionMismatch,
+            )))
         } else {
             let rect = rect.scaled(self.scale).round();
             let cropped_image = self.image.crop(
@@ -372,29 +375,29 @@ impl Bitmap {
         }
     }
 
-    #[cfg(target_os = "macos")]
-    fn system_copy_to_pasteboard(&self) -> ImageResult<()> {
-        use cocoa::appkit::{NSImage, NSPasteboard};
-        use cocoa::base::nil;
-        use cocoa::foundation::{NSArray, NSData};
-        use image::ImageFormat;
+    // #[cfg(target_os = "macos")]
+    // fn system_copy_to_pasteboard(&self) -> ImageResult<()> {
+    //     use cocoa::appkit::{NSImage, NSPasteboard};
+    //     use cocoa::base::nil;
+    //     use cocoa::foundation::{NSArray, NSData};
+    //     use image::ImageFormat;
 
-        let mut buffer: Vec<u8> = Vec::new();
-        self.image.write_to(&mut buffer, ImageFormat::PNG)?;
-        unsafe {
-            let data = NSData::dataWithBytes_length_(
-                nil,
-                buffer.as_ptr() as *const std::os::raw::c_void,
-                buffer.len() as u64,
-            );
-            let image = NSImage::initWithData_(NSImage::alloc(nil), data);
-            let objects = NSArray::arrayWithObject(nil, image);
-            let pasteboard = NSPasteboard::generalPasteboard(nil);
-            pasteboard.clearContents();
-            pasteboard.writeObjects(objects);
-        }
-        Ok(())
-    }
+    //     let mut buffer: Vec<u8> = Vec::new();
+    //     self.image.write_to(&mut buffer, ImageFormat::Png)?;
+    //     unsafe {
+    //         let data = NSData::dataWithBytes_length_(
+    //             nil,
+    //             buffer.as_ptr() as *const std::os::raw::c_void,
+    //             buffer.len() as u64,
+    //         );
+    //         let image = NSImage::initWithData_(NSImage::alloc(nil), data);
+    //         let objects = NSArray::arrayWithObject(nil, image);
+    //         let pasteboard = NSPasteboard::generalPasteboard(nil);
+    //         pasteboard.clearContents();
+    //         pasteboard.writeObjects(objects);
+    //     }
+    //     Ok(())
+    // }
 
     #[cfg(windows)]
     fn system_copy_to_pasteboard(&self) -> ImageResult<()> {
@@ -439,7 +442,9 @@ pub fn capture_screen() -> ImageResult<Bitmap> {
 /// Returns a screengrab of the given portion of the main display.
 pub fn capture_screen_portion(rect: Rect) -> ImageResult<Bitmap> {
     if !screen::is_rect_visible(rect) {
-        Err(ImageError::DimensionError)
+        Err(ImageError::Parameter(ParameterError::from_kind(
+            ParameterErrorKind::DimensionMismatch,
+        )))
     } else {
         system_capture_screen_portion(rect)
     }
@@ -451,7 +456,9 @@ fn system_capture_screen_portion(rect: Rect) -> ImageResult<Bitmap> {
     if let Some(image) = CGDisplay::screenshot(CGRect::from(rect), 0, 0, 0) {
         macos_load_cgimage(&image)
     } else {
-        Err(ImageError::NotEnoughData)
+        Err(ImageError::Parameter(ParameterError::from_kind(
+            ParameterErrorKind::NoMoreData,
+        )))
     }
 }
 
