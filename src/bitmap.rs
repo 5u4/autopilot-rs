@@ -501,7 +501,9 @@ fn system_capture_screen_portion(rect: Rect) -> ImageResult<Bitmap> {
         })
     };
     if screen.is_null() {
-        return Err(ImageError::NotEnoughData);
+        return Err(ImageError::Parameter(ParameterError::from_kind(
+            ParameterErrorKind::NoMoreData,
+        )));
     }
 
     // Get screen data in display device context.
@@ -543,7 +545,9 @@ fn system_capture_screen_portion(rect: Rect) -> ImageResult<Bitmap> {
                 SRCCOPY,
             ) == 0
         {
-            return Err(ImageError::NotEnoughData);
+            return Err(ImageError::Parameter(ParameterError::from_kind(
+                ParameterErrorKind::NoMoreData,
+            )));
         }
     };
 
@@ -589,7 +593,10 @@ fn system_capture_screen_portion(rect: Rect) -> ImageResult<Bitmap> {
             )
         };
         if image_ptr.is_null() {
-            return Err(ImageError::NotEnoughData);
+            return Err(ImageError::Parameter(ParameterError {
+                kind: ParameterErrorKind::NoMoreData,
+                underlying: None,
+            }));
         }
         let image = unsafe { **image_ptr };
         let bytes_per_pixel = image.bits_per_pixel / 8;
