@@ -185,6 +185,25 @@ fn system_toggle(button: Button, down: bool) {
 }
 
 #[cfg(target_os = "macos")]
+pub fn system_drag_start(button: Button) {
+    let point = CGPoint::from(location());
+    let source = CGEventSource::new(HIDSystemState).unwrap();
+    let event_type = CGEventType::LeftMouseDragged;
+    let event = CGEvent::new_mouse_event(source, event_type, point, CGMouseButton::from(button));
+    event.unwrap().post(CGEventTapLocation::HID);
+}
+
+#[cfg(target_os = "windows")]
+pub fn system_drag_start() {
+    unimplemented!()
+}
+
+#[cfg(target_os = "linux")]
+pub fn system_drag_start() {
+    unimplemented!()
+}
+
+#[cfg(target_os = "macos")]
 fn system_scroll(direction: ScrollDirection, clicks: u32) {
     for _ in 0..clicks {
         let wheel_count = if direction == ScrollDirection::Up {
